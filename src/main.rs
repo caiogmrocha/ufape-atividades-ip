@@ -1,24 +1,23 @@
 use std::{
-    fs::File,
-    io::{self, BufRead, BufReader},
-    process
+    env, fs::File, io::{self, BufRead, BufReader}, process
 };
 
 #[allow(dead_code)]
 struct Vertex (f32,f32,f32);
 
+type Face = Vec<i32>;
+type Faces = Vec<Face>;
+
 fn main() -> io::Result<()> {
-    let file = File::open("assets/hand-hybrid.off")?;
-
+    let args: Vec<String> = env::args().collect();
+    let file_path = args[1].as_str();
+    let file = File::open(file_path)?;
     let reader = BufReader::new(file);
-
     let mut lines = reader.lines();
-
+    
     let first_line = lines.next().unwrap().unwrap();
 
     if !first_line.contains("OFF") {
-        eprintln!();
-
         process::exit(1);
     }
 
@@ -41,14 +40,14 @@ fn main() -> io::Result<()> {
         vertices.push(Vertex(x,y,z));
     }
 
-    let mut faces: Vec<Vec<i32>> = Vec::new();
+    let mut faces: Faces = Vec::new();
 
     for _ in 0..num_faces {
         let line = lines.next().unwrap().unwrap();
         let mut spplited_line = line.split(" ");
 
         let face_vertices_count: i32 = spplited_line.next().unwrap().parse().unwrap();
-        let mut face_vertices: Vec<i32> = Vec::new();
+        let mut face_vertices: Face = Vec::new();
 
         for _ in 0..face_vertices_count {
             let vertex_index: i32 = spplited_line.next().unwrap().parse().unwrap();
