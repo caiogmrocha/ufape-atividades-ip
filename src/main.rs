@@ -1,62 +1,50 @@
+use bevy::prelude::*;
+
 use std::{
-    env, fs::File, io::{self, BufRead, BufReader}, process
+    env,
+    fs::File,
+    io,
 };
 
-#[allow(dead_code)]
-struct Vertex (f32,f32,f32);
-
-type Face = Vec<i32>;
-type Faces = Vec<Face>;
+use projeto_face_vertice::{
+    camera_controller::{CameraController, CameraControllerPlugin},
+    read_off_file,
+};
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    let file_path = args[1].as_str();
+    let default = String::from("assets/triangles.off");
+
+    let file_path: &str = args.get(1).unwrap_or_else(|| &default).as_str();
+
     let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
-    let mut lines = reader.lines();
+
+    let (_vertices, _faces) = read_off_file(file);
     
-    let first_line = lines.next().unwrap().unwrap();
-
-    if !first_line.contains("OFF") {
-        process::exit(1);
-    }
-
-    let second_line = lines.next().unwrap().unwrap();
-    let mut spplited_second_line = second_line.split(" ");
-
-    let num_vertices: i32 = spplited_second_line.next().unwrap().parse().unwrap();
-    let num_faces: i32 = spplited_second_line.next().unwrap().parse().unwrap();
-
-    let mut vertices: Vec<Vertex> = Vec::new();
-
-    for _ in 0..num_vertices {
-        let line = lines.next().unwrap().unwrap();
-        let mut spplited_line = line.split(" ");
-
-        let x: f32 = spplited_line.next().unwrap().parse().unwrap();
-        let y: f32 = spplited_line.next().unwrap().parse().unwrap();
-        let z: f32 = spplited_line.next().unwrap().parse().unwrap();
-
-        vertices.push(Vertex(x,y,z));
-    }
-
-    let mut faces: Faces = Vec::new();
-
-    for _ in 0..num_faces {
-        let line = lines.next().unwrap().unwrap();
-        let mut spplited_line = line.split(" ");
-
-        let face_vertices_count: i32 = spplited_line.next().unwrap().parse().unwrap();
-        let mut face_vertices: Face = Vec::new();
-
-        for _ in 0..face_vertices_count {
-            let vertex_index: i32 = spplited_line.next().unwrap().parse().unwrap();
-
-            face_vertices.push(vertex_index);
-        }
-
-        faces.push(face_vertices);
-    }
+    App::new()
+        .add_plugins((DefaultPlugins, CameraControllerPlugin))
+        .add_systems(Startup, setup)
+        .run();
 
     Ok(())
+}
+
+const CUBE_COLLOR: Color = Color::srgb(255.0, 155.0, 155.0);
+
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0., 1.5, 6.).looking_at(Vec3::ZERO, Vec3::Y),
+        CameraController::default(),
+    ));
+
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+        MeshMaterial3d(materials.add(CUBE_COLLOR)),
+        Transform::from_xyz(0.0, 0.5, 0.0),
+    ));
 }
